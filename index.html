@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mazdoor Hisab — Secure Offline Worker Wage Register</title>
+<meta name="theme-color" content="#21304a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Mazdoor Hisab">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" href="./icon-192.png">
+<style>
+  :root{
+    --paper: #eef0e3;
+    --paper-line: #d9dcc9;
+    --card: #f7f8f1;
+    --ink: #21304a;
+    --ink-soft: #4c5a72;
+    --ink-faint: #8892a3;
+    --rule: #c7cbb6;
+    --mustard: #b9832a;
+    --mustard-deep: #8f6620;
+    --red: #a1402f;
+    --red-bg: #f3e2dd;
+    --green: #3f6b45;
+    --green-bg: #e2ecdd;
+    --white: #fffdf7;
+    --radius: 3px;
+    --shadow: 0 1px 2px rgba(33,48,74,0.08), 0 1px 0 rgba(33,48,74,0.04);
+  }
+  *{ box-sizing: border-box; }
+  html,body{ height:100%; }
+  body{
+    margin:0;
+    background: var(--paper);
+    background-image:
+      linear-gradient(var(--paper-line) 1px, transparent 1px);
+    background-size: 100% 2.1em;
+    color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+    font-variant-numeric: tabular-nums;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1,h2,h3,.slab{ font-family: Georgia, 'Times New Roman', serif; }
+  button{ font-family: inherit; }
+  input, select{ font-family: inherit; }
+
+  .app{ max-width: 920px; margin: 0 auto; padding: 0 18px 80px; }
+
+  /* Header / title plate */
+  .titleplate{
+    margin: 0 -18px;
+    padding: 22px 18px 16px;
+    background: var(--ink);
+    color: var(--white);
+    position: relative;
+    overflow: hidden;
+  }
+  .titleplate::after{
+    content:"";
+    position:absolute; left:0; right:0; bottom:0; height:6px;
+    background: repeating-linear-gradient(90deg, var(--mustard) 0 10px, transparent 10px 20px);
+    opacity:.85;
+  }
+  .titleplate h1{
+    margin:0; font-size: 1.5rem; font-weight:600; letter-spacing:.2px;
+  }
+  .titleplate .sub{
+    margin-top: 4px; font-size: .84rem; color: #c7cfe0; font-weight: 400;
+  }
+  .titleplate .today{
+    margin-top: 14px; font-size: .78rem; color: #9fb0cc;
+  }
+
+  /* Summary strip */
+  .summary{
+    display:grid; grid-template-columns: repeat(3, 1fr);
+    gap: 1px; background: var(--rule);
+    margin-top: 18px; border: 1px solid var(--rule); border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .summary .cell{
+    background: var(--card); padding: 12px 14px;
+  }
+  .summary .cell .num{ font-size: 1.3rem; font-weight:700; }
+  .summary .cell .lbl{ font-size: .72rem; color: var(--ink-soft); margin-top:2px; }
+  .summary .cell.due .num{ color: var(--red); }
+
+  /* Tabs */
+  .tabs{
+    display:flex; gap:2px; margin-top: 22px; border-bottom: 2px solid var(--ink);
+  }
+  .tab{
+    background: var(--paper); border: none; border-bottom: none;
+    padding: 9px 16px 8px; font-size: .86rem; font-weight:600; color: var(--ink-soft);
+    cursor:pointer; position:relative; top:1px;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+  .tab.active{
+    background: var(--ink); color: var(--white);
+  }
+
+  .panel{ padding-top: 18px; }
+
+  /* Section heading */
+  .sec-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    margin-bottom: 10px; flex-wrap: wrap;
+  }
+  .sec-head h2{ margin:0; font-size: 1.08rem; font-weight:600; }
+  .sec-head .meta{ font-size: .78rem; color: var(--ink-soft); }
+
+  .row-controls{ display:flex; gap:8px; align-items:center; flex-wrap: wrap; }
+  input[type=date], select, input[type=text], input[type=number]{
+    border: 1px solid var(--rule); background: var(--white); color: var(--ink);
+    padding: 7px 9px; border-radius: var(--radius); font-size: .85rem;
+  }
+  input:focus, select:focus, button:focus{ outline: 2px solid var(--mustard); outline-offset:1px; }
+
+  .btn{
+    border:1px solid var(--ink); background: var(--ink); color: var(--white);
+    padding: 8px 14px; border-radius: var(--radius); font-size: .82rem; font-weight:600;
+    cursor:pointer;
+  }
+  .btn:hover{ background:#182338; }
+  .btn.secondary{ background: var(--white); color: var(--ink); }
+  .btn.secondary:hover{ background: #f0efe4; }
+  .btn.ghost{ background: transparent; color: var(--ink-soft); border-color: var(--rule); }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+  .btn.small{ padding:5px 10px; font-size:.76rem; }
+  .btn.settle{ background: var(--green); border-color: var(--green); }
+  .btn.settle:hover{ background:#315a38; }
+  .settled-badge{ display:inline-block; margin-left:6px; padding:2px 6px; border-radius:8px; background:var(--green-bg); color:var(--green); font-size:.68rem; font-weight:700; }
+
+  /* Worker attendance rows */
+  .worker-table{ border: 1px solid var(--rule); border-radius: var(--radius); overflow:hidden; background: var(--card); }
+  .worker-row{
+    display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center;
+    padding: 11px 13px; border-bottom: 1px solid var(--paper-line);
+  }
+  .worker-row:last-child{ border-bottom:none; }
+  .worker-id .name{ font-weight:600; font-size:.92rem; }
+  .worker-id .info{ font-size:.74rem; color: var(--ink-soft); margin-top:1px; }
+  .worker-id .info .proj{ color: var(--mustard-deep); font-weight:600; }
+
+  .status-toggle{ display:flex; gap:4px; }
+  .status-btn{
+    border:1px solid var(--rule); background: var(--white); color: var(--ink-soft);
+    padding: 6px 10px; font-size:.76rem; font-weight:600; border-radius: var(--radius);
+    cursor:pointer; min-width:58px;
+  }
+  .status-btn[data-s="present"].active{ background: var(--green-bg); border-color: var(--green); color: var(--green); }
+  .status-btn[data-s="half"].active{ background: #f3ecd8; border-color: var(--mustard-deep); color: var(--mustard-deep); }
+  .status-btn[data-s="absent"].active{ background: var(--red-bg); border-color: var(--red); color: var(--red); }
+
+  .empty{
+    padding: 30px 16px; text-align:center; color: var(--ink-soft); font-size:.86rem;
+    background: var(--card); border: 1px dashed var(--rule); border-radius: var(--radius);
+  }
+  .empty .hint{ font-size: .78rem; color: var(--ink-faint); margin-top:4px; }
+
+  /* Worker list */
+  .worker-card{
+    background: var(--card); border:1px solid var(--rule); border-radius: var(--radius);
+    padding: 12px 13px; margin-bottom: 8px; display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  }
+  .worker-card .name{ font-weight:600; }
+  .worker-card .sub{ font-size:.76rem; color: var(--ink-soft); margin-top:2px; }
+  .worker-card .actions{ display:flex; gap:6px; align-items:flex-start; }
+  .worker-card.inactive{ opacity:.55; }
+  .badge-inactive{ font-size:.68rem; background:#e4e4da; color:var(--ink-soft); padding:2px 6px; border-radius:8px; margin-left:6px; }
+
+  .form-grid{
+    display:grid; grid-template-columns: 1.4fr 1fr .9fr auto; gap:8px; margin-bottom: 16px;
+  }
+  @media (max-width: 680px){ .form-grid{ grid-template-columns: 1fr 1fr; } }
+
+  /* Attendance custom amount + worker editor */
+  .day-amount{ display:flex; align-items:center; gap:6px; margin-top:7px; flex-wrap:wrap; }
+  .day-amount label{ font-size:.7rem; color:var(--ink-soft); }
+  .day-amount input{ width:210px; max-width:100%; padding:5px 7px; font-size:.76rem; }
+  .day-amount .normal-note{ font-size:.68rem; color:var(--ink-faint); }
+  .worker-edit-form{
+    width:100%; margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule);
+    display:grid; grid-template-columns:1.4fr 1fr .8fr .8fr auto; gap:8px; align-items:end;
+  }
+  .worker-edit-form .edit-actions{ display:flex; gap:6px; }
+  @media (max-width:760px){
+    .worker-row{ grid-template-columns:1fr; }
+    .status-toggle{ flex-wrap:wrap; }
+    .worker-edit-form{ grid-template-columns:1fr 1fr; }
+    .worker-edit-form .edit-actions{ grid-column:1 / -1; }
+  }
+
+  /* Excel export */
+  .export-card{
+    background: var(--card); border:1px solid var(--rule); border-radius: var(--radius);
+    padding:13px 15px; margin-bottom:14px;
+  }
+  .export-grid{ display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end; }
+  .export-legend{ display:flex; gap:12px; flex-wrap:wrap; margin-top:9px; font-size:.72rem; color:var(--ink-soft); }
+  .legend-p{ color:#2f6b3b; font-weight:700; }
+  .legend-h{ color:#a07000; font-weight:700; }
+  .legend-a{ color:#b3261e; font-weight:700; }
+  @media (max-width:680px){ .export-grid{ grid-template-columns:1fr 1fr; } .export-grid .export-action{ grid-column:1/-1; } }
+
+
+  @media (max-width:680px){
+    .day-amount{ display:block; margin-top:10px; }
+    .day-amount input{ width:100%; max-width:320px; min-height:46px; padding:10px 12px; font-size:.88rem; }
+  }
+  /* Payments */
+  .pay-form{ display:grid; grid-template-columns: 1.3fr .8fr .9fr 1.2fr auto; gap:8px; margin-bottom:16px; }
+  @media (max-width: 760px){ .pay-form{ grid-template-columns: 1fr 1fr; } }
+  .pay-row{
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+    padding: 9px 13px; border-bottom:1px solid var(--paper-line); font-size:.85rem;
+  }
+  .pay-row:last-child{ border-bottom:none; }
+  .pay-row .amt{ font-weight:700; color: var(--green); }
+  .pay-row .who{ font-weight:600; }
+  .pay-row .note{ color: var(--ink-soft); font-size:.78rem; }
+
+  /* Ledger */
+  .ledger-card{
+    background: var(--card); border:1px solid var(--rule); border-radius: var(--radius);
+    padding: 13px 15px; margin-bottom: 10px;
+  }
+  .ledger-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; }
+  .ledger-top .name{ font-weight:700; font-size:.98rem; }
+  .ledger-top .proj{ font-size:.76rem; color: var(--mustard-deep); font-weight:600; }
+  .ledger-balance{ text-align:right; }
+  .ledger-balance .amt{ font-size:1.15rem; font-weight:700; }
+  .ledger-balance .amt.due{ color: var(--red); }
+  .ledger-balance .amt.credit{ color: var(--green); }
+  .ledger-balance .lbl{ font-size:.7rem; color: var(--ink-soft); }
+  .ledger-stats{
+    display:flex; gap:16px; margin-top:10px; padding-top:10px; border-top:1px dashed var(--rule);
+    font-size:.78rem; color: var(--ink-soft); flex-wrap:wrap;
+  }
+  .ledger-stats b{ color: var(--ink); }
+  .ledger-detail{ margin-top:8px; }
+  .ledger-detail summary{ cursor:pointer; font-size:.78rem; color: var(--ink-soft); }
+
+  .toast{
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color:var(--white); padding: 9px 16px; border-radius: var(--radius);
+    font-size:.82rem; box-shadow: var(--shadow); opacity:0; pointer-events:none; transition: opacity .2s, transform .2s;
+  }
+  .toast.show{ opacity:1; transform: translateX(-50%) translateY(-4px); }
+
+  .loading{ padding: 60px 0; text-align:center; color: var(--ink-soft); font-size:.9rem; }
+  label.field-label{ font-size:.7rem; color: var(--ink-soft); display:block; margin-bottom:3px; }
+
+
+  /* Mobile-first refinements */
+  body{ background-image:none; background:#f4f5ef; }
+  .app{ max-width:760px; padding:0 12px 40px; }
+  .titleplate{ display:none; }
+  .summary{ margin-top:12px; border-radius:12px; }
+  .summary .cell{ padding:10px 11px; }
+  .summary .cell .num{ font-size:1.08rem; }
+  .summary .cell .lbl{ font-size:.66rem; }
+  .tabs{ position:sticky; top:0; z-index:30; margin:0 -12px; max-width:none; border:0; background:var(--ink); padding:max(6px,env(safe-area-inset-top)) 8px 6px; display:grid; grid-template-columns:repeat(4,1fr); box-shadow:0 2px 10px rgba(33,48,74,.12); }
+  .tab{ top:0; border-radius:9px; padding:10px 3px; background:transparent; color:#c7cfe0; font-size:.74rem; min-height:44px; }
+  .tab.active{ background:rgba(255,255,255,.12); color:var(--white); box-shadow:inset 0 -3px 0 var(--mustard); }
+  .panel{ padding-top:12px; }
+  .sec-head{ margin-bottom:8px; }
+  .sec-head h2{ font-family:inherit; font-size:1rem; font-weight:750; }
+  .cardish,.worker-table,.worker-card,.ledger-card,.export-card{ border-radius:12px; box-shadow:0 1px 2px rgba(33,48,74,.04); }
+  .worker-row{ padding:12px; gap:12px; }
+  .worker-id .name{ font-size:1rem; font-weight:700; }
+  .worker-id .info{ font-size:.75rem; }
+  .status-toggle{ width:100%; display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .status-btn{ min-width:0; min-height:42px; border-radius:10px; font-size:.78rem; }
+  .btn{ border-radius:10px; min-height:40px; }
+  .btn.small{ min-height:34px; border-radius:9px; }
+  input[type=date], select, input[type=text], input[type=number]{ min-height:42px; border-radius:10px; width:100%; }
+  .day-amount{ display:grid; grid-template-columns:1fr auto; margin-top:9px; }
+  .day-amount label{ grid-column:1/-1; }
+  .day-amount input{ width:100%; }
+  .day-amount .normal-note{ align-self:center; }
+  .form-grid,.pay-form,.worker-edit-form{ grid-template-columns:1fr 1fr; }
+  .form-grid>div:last-child,.pay-form>div:last-child{ grid-column:1/-1; }
+  .form-grid>div:last-child .btn,.pay-form>div:last-child .btn{ width:100%; }
+  .quickbar{ display:grid; grid-template-columns:42px 1fr 42px; gap:7px; align-items:center; margin-bottom:10px; }
+  .quickbar .btn{ padding:6px; min-height:42px; }
+  .today-btn{ grid-column:1/-1; min-height:34px!important; }
+  .searchbox{ margin:0 0 10px; }
+  .searchbox input{ background:#fff; }
+  .section-card{ background:var(--card); border:1px solid var(--rule); border-radius:12px; padding:12px; margin-bottom:12px; }
+  .muted-line{ color:var(--ink-soft); font-size:.74rem; line-height:1.45; }
+  .status-line{ display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; margin:8px 0 10px; font-size:.74rem; color:var(--ink-soft); }
+  .status-line b{ color:var(--ink); }
+  .mobile-actions{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .danger-note{ color:var(--red); }
+  @media(max-width:560px){
+    .summary{ grid-template-columns:repeat(3,1fr); }
+    .summary .cell{ padding:9px 7px; text-align:center; }
+    .summary .cell .lbl{ line-height:1.2; }
+    .form-grid,.pay-form,.worker-edit-form,.export-grid{ grid-template-columns:1fr; }
+    .worker-edit-form .edit-actions,.export-grid .export-action{ grid-column:1; }
+    .worker-card{ display:block; }
+    .worker-card .actions{ margin-top:9px; }
+    .pay-row{ align-items:flex-start; }
+    .ledger-top{ display:block; }
+    .ledger-balance{ text-align:left; margin-top:8px; }
+    .ledger-stats{ gap:8px 14px; }
+  }
+
+
+  /* Data safety / PWA */
+  .safety-card{background:var(--card);border:1px solid var(--rule);border-radius:12px;padding:14px;margin-bottom:14px}
+  .safety-row{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--paper-line)}
+  .safety-row:last-child{border-bottom:0}
+  .safety-label{font-size:.78rem;color:var(--ink-soft)}
+  .safety-value{font-size:.8rem;font-weight:700;text-align:right}
+  .status-good{color:var(--green)} .status-warn{color:var(--mustard-deep)}
+  .install-banner{background:var(--green-bg);border:1px solid #bfd6c0;border-radius:12px;padding:12px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .install-banner .txt{font-size:.8rem;color:var(--ink)}
+  @media(max-width:520px){.safety-row{align-items:flex-start}.safety-value{max-width:56%}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <div class="loading">Opening the register…</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---------- state ----------
+  let workers = [];      // {id, name, trade, project, wage, active}
+  let attendance = {};   // { "YYYY-MM-DD": { workerId: {status, wage} } }
+  let payments = [];     // normal: {id, workerId, date, amount, note}; settlement also stores reset snapshots
+  let ready = false;
+  let activeTab = 'attendance';
+  let attDate = todayStr();
+  let projectFilter = '__all__';
+  let draftAttendance = {}; // workerId -> status, for the currently viewed date, before saving
+  let draftAmounts = {};    // workerId -> exact custom amount for this date (blank means normal wage rule)
+  let editWorkerId = null;  // worker currently being edited inline
+  let installPromptEvent = null;
+  let safetyInfo = { persistent:false, persistedSupported:false, lastSnapshot:null, snapshotCount:0, lastManualBackupAt:null };
+  let snapshotTimer = null;
+  let workerSearch = '';
+  let attendanceSearch = '';
+  let ledgerSearch = '';
+  let paymentWorkerFilter = '__all__';
+
+  // ---------- helpers ----------
+  function todayStr(){
+    const d = new Date();
+    return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  }
+  function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+  function rupees(n){
+    n = Math.round((n||0));
+    return '₹' + n.toLocaleString('en-IN');
+  }
+  function fmtDate(s){
+    const d = new Date(s+'T00:00:00');
+    return d.toLocaleDateString('en-IN', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
+  }
+  function shortDate(s){
+    const d = new Date(s+'T00:00:00');
+    return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short'}).replace(' ','-');
+  }
+  function dateRange(from,to){
+    const out=[]; if(!from||!to||from>to) return out;
+    const d=new Date(from+'T00:00:00'), end=new Date(to+'T00:00:00');
+    while(d<=end){ out.push(d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')); d.setDate(d.getDate()+1); }
+    return out;
+  }
+  function esc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+  function showToast(msg){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>t.classList.remove('show'), 1800);
+  }
+
+  // ---------- durable storage ----------
+  const DB_NAME = 'mazdoor-hisab-secure-v1';
+  const DB_VERSION = 1;
+  let dbPromise = null;
+
+  function openDB(){
+    if(dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve,reject)=>{
+      if(!('indexedDB' in window)){ reject(new Error('IndexedDB unavailable')); return; }
+      const req=indexedDB.open(DB_NAME,DB_VERSION);
+      req.onupgradeneeded=()=>{
+        const db=req.result;
+        if(!db.objectStoreNames.contains('kv')) db.createObjectStore('kv');
+        if(!db.objectStoreNames.contains('snapshots')){
+          const s=db.createObjectStore('snapshots',{keyPath:'id'});
+          s.createIndex('createdAt','createdAt');
+        }
+      };
+      req.onsuccess=()=>resolve(req.result);
+      req.onerror=()=>reject(req.error||new Error('IndexedDB open failed'));
+    });
+    return dbPromise;
+  }
+  async function idbGet(store,key){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{ const tx=db.transaction(store,'readonly'); const r=tx.objectStore(store).get(key); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); });
+  }
+  async function idbSet(store,key,value){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{ const tx=db.transaction(store,'readwrite'); tx.objectStore(store).put(value,key); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); });
+  }
+  async function idbPutSnapshot(snapshot){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{ const tx=db.transaction('snapshots','readwrite'); tx.objectStore('snapshots').put(snapshot); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); });
+  }
+  async function idbAllSnapshots(){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{ const tx=db.transaction('snapshots','readonly'); const r=tx.objectStore('snapshots').getAll(); r.onsuccess=()=>resolve(r.result||[]); r.onerror=()=>reject(r.error); });
+  }
+  async function idbDeleteSnapshot(id){
+    const db=await openDB();
+    return new Promise((resolve,reject)=>{ const tx=db.transaction('snapshots','readwrite'); tx.objectStore('snapshots').delete(id); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); });
+  }
+
+  async function loadAll(){
+    const [w,a,p] = await Promise.all([safeGet('workers'), safeGet('attendance'), safeGet('payments')]);
+    workers = w || [];
+    attendance = a || {};
+    payments = p || [];
+  }
+  async function safeGet(key){
+    try{
+      const v=await idbGet('kv',key);
+      if(v!==undefined && v!==null) return v;
+    }catch(e){}
+    try{
+      if(window.storage && window.storage.get){
+        const res = await window.storage.get(key, false);
+        if(res){ const val=JSON.parse(res.value); try{await idbSet('kv',key,val);}catch(e){} return val; }
+      }
+    }catch(e){}
+    try{
+      const raw=localStorage.getItem('mazdoor-hisab-'+key);
+      if(raw){ const val=JSON.parse(raw); try{await idbSet('kv',key,val);}catch(e){} return val; }
+    }catch(e){}
+    return null;
+  }
+  async function safeSet(key, value){
+    let saved=false;
+    try{ await idbSet('kv',key,value); saved=true; }catch(e){}
+    try{ localStorage.setItem('mazdoor-hisab-'+key,JSON.stringify(value)); saved=true; }catch(e){}
+    try{
+      if(window.storage && window.storage.set){ await window.storage.set(key,JSON.stringify(value),false); saved=true; }
+    }catch(e){}
+    if(!saved) throw new Error('storage unavailable');
+    scheduleAutoSnapshot();
+  }
+  async function saveWorkers(){
+    try{ await safeSet('workers', workers); }
+    catch(e){ showToast('Could not save — storage unavailable'); }
+  }
+  async function saveAttendance(){
+    try{ await safeSet('attendance', attendance); }
+    catch(e){ showToast('Could not save — storage unavailable'); }
+  }
+  async function savePayments(){
+    try{ await safeSet('payments', payments); }
+    catch(e){ showToast('Could not save — storage unavailable'); }
+  }
+
+  function scheduleAutoSnapshot(){
+    clearTimeout(snapshotTimer);
+    snapshotTimer=setTimeout(()=>createAutoSnapshot().catch(()=>{}),700);
+  }
+  async function createAutoSnapshot(){
+    const snap={
+      id:'snap-'+Date.now(), createdAt:new Date().toISOString(), version:6,
+      workers:structuredClone(workers), attendance:structuredClone(attendance), payments:structuredClone(payments)
+    };
+    await idbPutSnapshot(snap);
+    let snaps=await idbAllSnapshots();
+    snaps.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+    for(const old of snaps.slice(20)){ try{await idbDeleteSnapshot(old.id);}catch(e){} }
+    await refreshSafetyInfo(false);
+  }
+  async function refreshSafetyInfo(rerender=false){
+    try{
+      const snaps=await idbAllSnapshots();
+      snaps.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+      safetyInfo.snapshotCount=snaps.length;
+      safetyInfo.lastSnapshot=snaps[0]?.createdAt||null;
+    }catch(e){ safetyInfo.snapshotCount=0; safetyInfo.lastSnapshot=null; }
+    try{ safetyInfo.lastManualBackupAt=localStorage.getItem('mazdoor-hisab-last-manual-backup')||null; }catch(e){}
+    if(navigator.storage && navigator.storage.persisted){
+      safetyInfo.persistedSupported=true;
+      try{ safetyInfo.persistent=await navigator.storage.persisted(); }catch(e){}
+    }
+    if(rerender) render();
+  }
+  async function requestPersistentStorage(){
+    if(!(navigator.storage && navigator.storage.persist)) return false;
+    try{
+      const granted=await navigator.storage.persist();
+      safetyInfo.persistent=!!granted; safetyInfo.persistedSupported=true;
+      return granted;
+    }catch(e){ return false; }
+  }
+  async function restoreLatestSnapshot(){
+    try{
+      const snaps=await idbAllSnapshots();
+      snaps.sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)));
+      const s=snaps[0];
+      if(!s){ showToast('No automatic snapshot available'); return; }
+      if(!confirm('Restore the latest automatic snapshot? Current data will be replaced.')) return;
+      workers=s.workers||[]; attendance=s.attendance||{}; payments=s.payments||[];
+      await Promise.all([saveWorkers(),saveAttendance(),savePayments()]);
+      showToast('Latest snapshot restored'); render();
+    }catch(e){ showToast('Could not restore snapshot'); }
+  }
+
+  // ---------- calculations ----------
+  function wageForStatus(status, wage){
+    if(status === 'present') return wage;
+    if(status === 'half') return wage/2;
+    return 0;
+  }
+  function totalEarned(workerId){
+    let sum = 0;
+    for(const date in attendance){
+      const rec = attendance[date][workerId];
+      if(rec) sum += Number.isFinite(Number(rec.amount)) ? Number(rec.amount) : wageForStatus(rec.status, rec.wage);
+    }
+    return sum;
+  }
+  function totalPaid(workerId){
+    return payments.filter(p=>p.workerId===workerId).reduce((s,p)=>s+p.amount,0);
+  }
+  function lastPaymentDate(workerId){
+    const list = payments.filter(p=>p.workerId===workerId).sort((a,b)=>b.date.localeCompare(a.date));
+    return list.length ? list[0].date : null;
+  }
+  function attendanceCounts(workerId){
+    let present=0, half=0, absent=0;
+    for(const date in attendance){
+      const rec = attendance[date][workerId];
+      if(!rec) continue;
+      if(rec.status==='present') present++;
+      else if(rec.status==='half') half++;
+      else if(rec.status==='absent') absent++;
+    }
+    return {present, half, absent};
+  }
+
+  function latestSettlement(workerId){
+    const list = payments.filter(p=>p.workerId===workerId && p.type==='settlement')
+      .sort((a,b)=>(b.clearedAt||b.date).localeCompare(a.clearedAt||a.date));
+    return list.length ? list[0] : null;
+  }
+  function cycleStats(workerId){
+    const earned = totalEarned(workerId);
+    const paid = totalPaid(workerId);
+    const counts = attendanceCounts(workerId);
+    const reset = latestSettlement(workerId);
+    if(!reset) return {earned, paid, balance:earned-paid, counts, reset:null};
+    const baseCounts = reset.resetCounts || {present:0, half:0, absent:0};
+    const cycleCounts = {
+      present: Math.max(0, counts.present-(baseCounts.present||0)),
+      half: Math.max(0, counts.half-(baseCounts.half||0)),
+      absent: Math.max(0, counts.absent-(baseCounts.absent||0))
+    };
+    const cycleEarned = earned-(reset.resetEarnedTotal||0);
+    const cyclePaid = paid-(reset.resetPaidTotal||0);
+    return {earned:cycleEarned, paid:cyclePaid, balance:cycleEarned-cyclePaid, counts:cycleCounts, reset};
+  }
+  function projectsList(){
+    const set = new Set(workers.map(w=>w.project).filter(Boolean));
+    return Array.from(set).sort();
+  }
+  function activeWorkers(){
+    return workers.filter(w=>w.active !== false);
+  }
+  function filteredWorkers(list){
+    if(projectFilter==='__all__') return list;
+    return list.filter(w=>w.project===projectFilter);
+  }
+
+  // ---------- Excel export (real .xlsx, no extension warning) ----------
+  function xmlEsc(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'}[c]));
+  }
+  function recordAmountForExport(rec,w){
+    if(!rec) return 0;
+    if(Number.isFinite(Number(rec.amount))) return Number(rec.amount);
+    const base=Number.isFinite(Number(rec.wage)) ? Number(rec.wage) : Number(w.wage)||0;
+    if(rec.status==='present') return base;
+    if(rec.status==='half') return base/2;
+    return 0;
+  }
+  function colName(n){
+    let s=''; while(n>0){ n--; s=String.fromCharCode(65+n%26)+s; n=Math.floor(n/26); } return s;
+  }
+  function crc32(bytes){
+    let c=0xffffffff;
+    for(const b of bytes){ c^=b; for(let k=0;k<8;k++) c=(c>>>1)^((c&1)?0xedb88320:0); }
+    return (c^0xffffffff)>>>0;
+  }
+  function u16(n){ return [n&255,(n>>>8)&255]; }
+  function u32(n){ return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255]; }
+  function makeZip(files){
+    const enc=new TextEncoder(), locals=[], centrals=[]; let offset=0;
+    const now=new Date();
+    const dostime=((now.getHours()&31)<<11)|((now.getMinutes()&63)<<5)|((now.getSeconds()/2)&31);
+    const dosdate=(((now.getFullYear()-1980)&127)<<9)|(((now.getMonth()+1)&15)<<5)|(now.getDate()&31);
+    for(const f of files){
+      const name=enc.encode(f.name), data=typeof f.data==='string'?enc.encode(f.data):f.data, crc=crc32(data);
+      const local=new Uint8Array([0x50,0x4b,0x03,0x04,20,0,0,0,0,0,...u16(dostime),...u16(dosdate),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),0,0,...name,...data]);
+      locals.push(local);
+      const central=new Uint8Array([0x50,0x4b,0x01,0x02,20,0,20,0,0,0,0,0,...u16(dostime),...u16(dosdate),...u32(crc),...u32(data.length),...u32(data.length),...u16(name.length),0,0,0,0,0,0,0,0,0,0,0,0,...u32(offset),...name]);
+      centrals.push(central); offset+=local.length;
+    }
+    const csize=centrals.reduce((s,a)=>s+a.length,0), count=files.length;
+    const end=new Uint8Array([0x50,0x4b,0x05,0x06,0,0,0,0,...u16(count),...u16(count),...u32(csize),...u32(offset),0,0]);
+    const size=offset+csize+end.length, out=new Uint8Array(size); let p=0;
+    [...locals,...centrals,end].forEach(a=>{ out.set(a,p); p+=a.length; });
+    return out;
+  }
+  function exportExcel(from,to){
+    const dates=dateRange(from,to);
+    if(!dates.length){ showToast('Choose a valid date range'); return; }
+    if(dates.length>370){ showToast('Please export 370 days or less at a time'); return; }
+    const rows=workers.filter(w=>w.active!==false || dates.some(d=>attendance[d] && attendance[d][w.id]));
+    if(!rows.length){ showToast('No workers to export'); return; }
+
+    const headerCells=[];
+    headerCells.push(`<c r="A1" t="inlineStr" s="1"><is><t>Name</t></is></c>`);
+    headerCells.push(`<c r="B1" t="inlineStr" s="1"><is><t>Daily Wage</t></is></c>`);
+    dates.forEach((d,i)=>headerCells.push(`<c r="${colName(i+3)}1" t="inlineStr" s="1"><is><t>${xmlEsc(shortDate(d))}</t></is></c>`));
+    headerCells.push(`<c r="${colName(dates.length+3)}1" t="inlineStr" s="1"><is><t>Total</t></is></c>`);
+    const sheetRows=[`<row r="1" ht="24" customHeight="1">${headerCells.join('')}</row>`];
+    rows.forEach((w,ri)=>{
+      const r=ri+2, cells=[]; let total=0;
+      cells.push(`<c r="A${r}" t="inlineStr" s="2"><is><t>${xmlEsc(w.name)}</t></is></c>`);
+      cells.push(`<c r="B${r}" s="3"><v>${Number(w.wage)||0}</v></c>`);
+      dates.forEach((d,di)=>{
+        const ref=`${colName(di+3)}${r}`, rec=attendance[d]&&attendance[d][w.id];
+        if(!rec){ const dayPayments=payments.filter(p=>p.workerId===w.id && p.date===d && p.type!=='settlement'); if(dayPayments.length){ const runs=dayPayments.map(p=>`<r><rPr><b/><color rgb="FFB91C1C"/><sz val="11"/><rFont val="Calibri"/></rPr><t>${xmlEsc(`Adv (${Math.round(Number(p.amount)||0)})`)}</t></r>`).join(''); cells.push(`<c r="${ref}" t="inlineStr" s="7"><is>${runs}</is></c>`); } else cells.push(`<c r="${ref}" s="7"/>`); return; }
+        const amount=recordAmountForExport(rec,w); total+=amount;
+        const abbr=rec.status==='present'?'P':rec.status==='half'?'H':'A';
+        const style=abbr==='P'?4:abbr==='H'?5:6;
+        const custom=Number.isFinite(Number(rec.amount));
+        const dayPayments=payments.filter(p=>p.workerId===w.id && p.date===d && p.type!=='settlement');
+        if(custom || dayPayments.length){
+          const runs=[];
+          if(custom){
+            runs.push(`<r><rPr><b/><color rgb="FF1D4ED8"/><sz val="11"/><rFont val="Calibri"/></rPr><t>${xmlEsc(`${abbr} (${Math.round(Number(rec.amount))})`)}</t></r>`);
+          }else{
+            const statusColor=abbr==='P'?'FF2F6B3B':abbr==='H'?'FF8A6500':'FFB3261E';
+            runs.push(`<r><rPr><b/><color rgb="${statusColor}"/><sz val="11"/><rFont val="Calibri"/></rPr><t>${abbr}</t></r>`);
+          }
+          dayPayments.forEach(p=>runs.push(`<r><rPr><b/><color rgb="FFB91C1C"/><sz val="11"/><rFont val="Calibri"/></rPr><t xml:space="preserve"> + Adv (${Math.round(Number(p.amount)||0)})</t></r>`));
+          cells.push(`<c r="${ref}" t="inlineStr" s="${style}"><is>${runs.join('')}</is></c>`);
+        }else{
+          cells.push(`<c r="${ref}" t="inlineStr" s="${style}"><is><t>${abbr}</t></is></c>`);
+        }
+      });
+      cells.push(`<c r="${colName(dates.length+3)}${r}" s="8"><v>${total}</v></c>`);
+      sheetRows.push(`<row r="${r}">${cells.join('')}</row>`);
+    });
+    const lastCol=colName(dates.length+3);
+    const cols=[`<col min="1" max="1" width="22" customWidth="1"/>`,`<col min="2" max="2" width="12" customWidth="1"/>`,`<col min="3" max="${dates.length+2}" width="10" customWidth="1"/>`,`<col min="${dates.length+3}" max="${dates.length+3}" width="13" customWidth="1"/>`].join('');
+    const sheet=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetViews><sheetView workbookViewId="0"><pane xSplit="2" ySplit="1" topLeftCell="C2" activePane="bottomRight" state="frozen"/></sheetView></sheetViews><cols>${cols}</cols><sheetData>${sheetRows.join('')}</sheetData><autoFilter ref="A1:${lastCol}${rows.length+1}"/><pageMargins left="0.3" right="0.3" top="0.5" bottom="0.5" header="0.2" footer="0.2"/></worksheet>`;
+    const styles=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="[$₹-en-IN]#,##0"/></numFmts><fonts count="4"><font><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FFFFFFFF"/><sz val="11"/><name val="Calibri"/></font><font><b/><color rgb="FF21304A"/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font></fonts><fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF21304A"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE7F2E8"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF4CC"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFCE8E6"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border/><border><left style="thin"><color rgb="FFD9DCC9"/></left><right style="thin"><color rgb="FFD9DCC9"/></right><top style="thin"><color rgb="FFD9DCC9"/></top><bottom style="thin"><color rgb="FFD9DCC9"/></bottom></border></borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="9"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/><xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf><xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0"/><xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="3" fillId="3" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="3" fillId="4" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="3" fillId="5" borderId="1" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf><xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0"/><xf numFmtId="164" fontId="3" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyAlignment="1"><alignment horizontal="center"/></xf></cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+    const files=[
+      {name:'[Content_Types].xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/docProps/core.xml" ContentType="application/vnd.openxmlformats-package.core-properties+xml"/><Override PartName="/docProps/app.xml" ContentType="application/vnd.openxmlformats-officedocument.extended-properties+xml"/></Types>`},
+      {name:'_rels/.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/core-properties" Target="docProps/core.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/extended-properties" Target="docProps/app.xml"/></Relationships>`},
+      {name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Attendance" sheetId="1" r:id="rId1"/></sheets></workbook>`},
+      {name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+      {name:'xl/worksheets/sheet1.xml',data:sheet},{name:'xl/styles.xml',data:styles},
+      {name:'docProps/core.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:creator>Mazdoor Hisab</dc:creator><cp:lastModifiedBy>Mazdoor Hisab</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`},
+      {name:'docProps/app.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Mazdoor Hisab</Application></Properties>`}
+    ];
+    const zip=makeZip(files), blob=new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Mazdoor_Hisab_${from}_to_${to}.xlsx`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500); showToast('Excel .xlsx exported');
+  }
+
+  async function sha256Hex(text){
+    if(!(crypto && crypto.subtle)) return null;
+    const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text));
+    return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  }
+  async function buildBackupPayload(){
+    const core={version:6,exportedAt:new Date().toISOString(),workers,attendance,payments};
+    const checksum=await sha256Hex(JSON.stringify(core));
+    return checksum ? {...core,integrity:{algorithm:'SHA-256',checksum}} : core;
+  }
+  async function downloadBackup(){
+    const payload=await buildBackupPayload();
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Mazdoor_Hisab_Backup_${todayStr()}.json`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+    const ts=new Date().toISOString();
+    try{localStorage.setItem('mazdoor-hisab-last-manual-backup',ts);}catch(e){}
+    safetyInfo.lastManualBackupAt=ts;
+    showToast('Backup downloaded');
+    render();
+  }
+  async function importBackupFile(file){
+    try{
+      const parsed=JSON.parse(await file.text());
+      if(!Array.isArray(parsed.workers) || !parsed.attendance || !Array.isArray(parsed.payments)) throw new Error('invalid');
+      if(parsed.integrity && parsed.integrity.checksum){
+        const core={version:parsed.version,exportedAt:parsed.exportedAt,workers:parsed.workers,attendance:parsed.attendance,payments:parsed.payments};
+        const hash=await sha256Hex(JSON.stringify(core));
+        if(hash && hash!==parsed.integrity.checksum) throw new Error('checksum');
+      }
+      if(!confirm('Restore this backup? Current app data will be replaced.')) return;
+      workers=parsed.workers; attendance=parsed.attendance; payments=parsed.payments;
+      await Promise.all([saveWorkers(),saveAttendance(),savePayments()]);
+      await createAutoSnapshot();
+      showToast('Backup restored'); render();
+    }catch(e){ showToast(e && e.message==='checksum' ? 'Backup failed integrity check' : 'Invalid backup file'); }
+  }
+
+  async function migrateMergedIfNeeded(){
+    if(workers.length) return;
+    try{
+      const raw=localStorage.getItem('mazdoorHisabMerged_v3'); if(!raw) return;
+      const old=JSON.parse(raw); if(!Array.isArray(old.workers)||!old.workers.length) return;
+      workers=old.workers.map(w=>({id:String(w.id),name:w.name||'',trade:w.trade||'',project:w.project||'',wage:Number(w.wage)||0,active:w.active!==false}));
+      attendance={};
+      (old.attendance||[]).forEach(a=>{
+        const wid=String(a.workerId); attendance[a.date]=attendance[a.date]||{};
+        const rec={status:a.status,wage:Number(a.recordedWage!==undefined?a.recordedWage:(workers.find(w=>w.id===wid)||{}).wage)||0};
+        if(a.overrideAmount!==undefined&&a.overrideAmount!==null) rec.amount=Number(a.overrideAmount)||0;
+        attendance[a.date][wid]=rec;
+      });
+      payments=(old.payments||[]).map(p=>({...p,id:String(p.id),workerId:String(p.workerId)}));
+      await Promise.all([saveWorkers(),saveAttendance(),savePayments()]);
+      showToast('Existing Mazdoor Hisab data imported');
+    }catch(e){}
+  }
+
+  // ---------- render root ----------
+  function render(){
+    const app = document.getElementById('app');
+    const dueTotal = activeWorkers().reduce((s,w)=> s + Math.max(0, totalEarned(w.id)-totalPaid(w.id)), 0);
+    const rec = attendance[attDate] || {};
+    const presentToday = Object.values(rec).filter(r=>r.status==='present').length;
+
+    app.innerHTML = `
+      <div class="titleplate">
+        <h1>Mazdoor Hisab</h1>
+        <div class="sub">Attendance · wages · payments</div>
+        <div class="today">${esc(fmtDate(todayStr()))}</div>
+      </div>
+
+      <div class="tabs" role="navigation" aria-label="Main navigation">
+        ${tabBtn('attendance','Attendance')}
+        ${tabBtn('payments','Payment')}
+        ${tabBtn('workers','Worker')}
+        ${tabBtn('ledger','Ledger')}
+      </div>
+
+      <div class="summary">
+        <div class="cell"><div class="num">${activeWorkers().length}</div><div class="lbl">Workers on the rolls</div></div>
+        <div class="cell"><div class="num">${presentToday}</div><div class="lbl">Marked present today</div></div>
+        <div class="cell due"><div class="num">${rupees(dueTotal)}</div><div class="lbl">Total outstanding</div></div>
+      </div>
+
+      <div class="panel" id="panel"></div>
+    `;
+    bindTabButtons();
+    renderPanel();
+  }
+  function tabBtn(id,label){
+    return `<button class="tab ${activeTab===id?'active':''}" data-tab="${id}">${label}</button>`;
+  }
+  function bindTabButtons(){
+    document.querySelectorAll('.tab').forEach(b=>{
+      b.onclick = ()=>{ activeTab = b.dataset.tab; render(); };
+    });
+  }
+  function renderPanel(){
+    const panel = document.getElementById('panel');
+    if(activeTab==='attendance') panel.innerHTML = attendanceView();
+    else if(activeTab==='workers') panel.innerHTML = workersView();
+    else if(activeTab==='payments') panel.innerHTML = paymentsView();
+    else panel.innerHTML = ledgerView();
+    bindPanelEvents();
+  }
+
+  // ---------- ATTENDANCE ----------
+  function attendanceView(){
+    const baseList = filteredWorkers(activeWorkers());
+    const q = attendanceSearch.trim().toLowerCase();
+    const list = baseList.filter(w=>!q || (w.name+' '+(w.trade||'')+' '+(w.project||'')).toLowerCase().includes(q));
+    const rec = attendance[attDate] || {};
+    const projOpts = projectsList().map(p=>`<option value="${esc(p)}" ${projectFilter===p?'selected':''}>${esc(p)}</option>`).join('');
+
+    if(workers.length===0){
+      return `<div class="empty">No workers added yet.<div class="hint">Go to the Workers tab and add the people working under your father.</div></div>`;
+    }
+
+    const rows = list.map(w=>{
+      const draft = draftAttendance[w.id] || (rec[w.id] ? rec[w.id].status : null);
+      const existingCustom = rec[w.id] && Number.isFinite(Number(rec[w.id].amount)) ? Number(rec[w.id].amount) : '';
+      const custom = Object.prototype.hasOwnProperty.call(draftAmounts,w.id) ? draftAmounts[w.id] : existingCustom;
+      const normalForStatus = draft==='half' ? w.wage/2 : (draft==='absent' ? 0 : w.wage);
+      return `
+        <div class="worker-row">
+          <div class="worker-id">
+            <div class="name">${esc(w.name)}</div>
+            <div class="info"><span class="proj">${esc(w.project||'No project')}</span>${w.trade?' · '+esc(w.trade):''} · ${rupees(w.wage)}/day</div>
+            <div class="day-amount">
+              <input type="number" min="0" step="1" data-dayamount="${w.id}" value="${custom}" placeholder="Wage for today" aria-label="Wage for today">
+            </div>
+          </div>
+          <div class="status-toggle" data-worker="${w.id}">
+            <button class="status-btn ${draft==='present'?'active':''}" data-s="present">Present</button>
+            <button class="status-btn ${draft==='half'?'active':''}" data-s="half">Half day</button>
+            <button class="status-btn ${draft==='absent'?'active':''}" data-s="absent">Absent</button>
+          </div>
+        </div>`;
+    }).join('');
+
+    return `
+      <div class="sec-head"><h2>Attendance</h2><div class="meta">${esc(fmtDate(attDate))}</div></div>
+      <div class="quickbar">
+        <button class="btn secondary" id="prev-date" aria-label="Previous day">‹</button>
+        <input type="date" id="att-date" value="${attDate}" max="${todayStr()}">
+        <button class="btn secondary" id="next-date" aria-label="Next day" ${attDate>=todayStr()?'disabled':''}>›</button>
+        <button class="btn ghost today-btn" id="today-date">Today</button>
+      </div>
+      ${projectsList().length>1 ? `<div style="margin-bottom:10px"><select id="att-project"><option value="__all__">All projects</option>${projOpts}</select></div>` : ''}
+      <div class="searchbox"><input type="text" id="attendance-search" placeholder="Search worker, work or project" value="${esc(attendanceSearch)}"></div>
+      <div class="status-line"><span><b>${list.length}</b> workers</span><span><b>${Object.keys(rec).length}</b> already marked</span></div>
+      <div class="row-controls" style="margin-bottom:10px;"><button class="btn secondary small" id="mark-all-present">Mark all present</button></div>
+      <div class="worker-table">${rows || '<div class="empty">No workers for this project.</div>'}</div>
+      <div style="margin-top:12px"><button class="btn" id="save-attendance" style="width:100%">Save attendance</button></div>
+    `;
+  }
+
+  // ---------- WORKERS ----------
+  function workersView(){
+    const visibleWorkers = workers.filter(w=>!workerSearch || (w.name+' '+(w.trade||'')+' '+(w.project||'')).toLowerCase().includes(workerSearch.toLowerCase()));
+    const cards = visibleWorkers.map(w=>{
+      const earned = totalEarned(w.id), paid = totalPaid(w.id), bal = earned-paid;
+      const editing = editWorkerId===w.id;
+      return `
+      <div class="worker-card ${w.active===false?'inactive':''}">
+        <div>
+          <div class="name">${esc(w.name)} ${w.active===false?'<span class="badge-inactive">inactive</span>':''}</div>
+          <div class="sub">${esc(w.project||'No project')}${w.trade?' · '+esc(w.trade):''} · ${rupees(w.wage)}/day · balance ${rupees(bal)}</div>
+        </div>
+        <div class="actions">
+          <button class="btn ghost small" data-edit="${w.id}">${editing?'Editing…':'Edit details'}</button>
+          <button class="btn ghost small" data-toggle="${w.id}">${w.active===false?'Reactivate':'Mark left'}</button>
+        </div>
+        ${editing ? `
+          <div class="worker-edit-form" data-editform="${w.id}">
+            <div><label class="field-label">Name</label><input type="text" data-ew-name value="${esc(w.name)}"></div>
+            <div><label class="field-label">Trade / work</label><input type="text" data-ew-trade value="${esc(w.trade||'')}"></div>
+            <div><label class="field-label">Project / site</label><input type="text" data-ew-project value="${esc(w.project||'')}"></div>
+            <div><label class="field-label">Daily wage (₹)</label><input type="number" min="1" data-ew-wage value="${w.wage}"></div>
+            <div><label class="field-label">Status</label><select data-ew-active><option value="active" ${w.active!==false?'selected':''}>Active</option><option value="inactive" ${w.active===false?'selected':''}>Inactive / left</option></select></div>
+            <div class="edit-actions"><button class="btn small" data-saveedit="${w.id}">Save changes</button><button class="btn secondary small" data-canceledit="${w.id}">Cancel</button></div>
+          </div>` : ''}
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="sec-head"><h2>Workers</h2><div class="meta">${workers.filter(w=>w.active!==false).length} active</div></div>
+      <div class="searchbox"><input type="text" id="worker-search" placeholder="Search name, work or project" value="${esc(workerSearch)}"></div>
+      <details class="section-card"><summary style="cursor:pointer;font-weight:700">Add worker</summary><div style="height:10px"></div>
+      <div class="form-grid">
+        <div><label class="field-label">Name</label><input type="text" id="w-name" placeholder="Worker's name"></div>
+        <div><label class="field-label">Trade / work</label><input type="text" id="w-trade" placeholder="Mason, helper..."></div>
+        <div><label class="field-label">Project / site</label><input type="text" id="w-project" placeholder="e.g. Sharma house"></div>
+        <div><label class="field-label">Daily wage (₹)</label><input type="number" id="w-wage" placeholder="500" min="0"></div>
+        <div style="display:flex; align-items:flex-end;"><button class="btn" id="add-worker">Add</button></div>
+      </div></details>
+      <div class="sec-head"><h2>All workers</h2><div class="meta">${visibleWorkers.length} shown · ${workers.length} total</div></div>
+      ${cards || '<div class="empty">No matching workers.</div>'}
+    `;
+  }
+
+  // ---------- PAYMENTS ----------
+  function paymentsView(){
+    const options = activeWorkers().map(w=>`<option value="${w.id}">${esc(w.name)} — ${esc(w.project||'')}</option>`).join('');
+    const list = payments.filter(p=>paymentWorkerFilter==='__all__'||p.workerId===paymentWorkerFilter).slice().sort((a,b)=> b.date.localeCompare(a.date) || 0);
+    const rows = list.map(p=>{
+      const w = workers.find(x=>x.id===p.workerId);
+      return `
+      <div class="pay-row">
+        <div>
+          <div class="who">${esc(w?w.name:'Removed worker')}${p.type==='settlement'?'<span class="settled-badge">CYCLE CLEARED</span>':''}</div>
+          <div class="note">${esc(fmtDate(p.date))}${p.note ? ' · '+esc(p.note) : ''}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div class="amt">${rupees(p.amount)}</div>
+          <button class="btn ghost small" data-delpay="${p.id}">${p.type==='settlement'?'Undo clear':'Remove'}</button>
+        </div>
+      </div>`;
+    }).join('');
+
+    return `
+      <div class="sec-head"><h2>Record a payment</h2><div class="meta">advance, or settlement on No Moon Day</div></div>
+      <div class="pay-form">
+        <div><label class="field-label">Worker</label><select id="p-worker">${options || '<option value="">Add a worker first</option>'}</select></div>
+        <div><label class="field-label">Amount (₹)</label><input type="number" id="p-amount" placeholder="1000" min="0"></div>
+        <div><label class="field-label">Date</label><input type="date" id="p-date" value="${todayStr()}" max="${todayStr()}"></div>
+        <div><label class="field-label">Note (optional)</label><input type="text" id="p-note" placeholder="e.g. Advance, No Moon Day"></div>
+        <div style="display:flex; align-items:flex-end;"><button class="btn" id="add-payment">Save</button></div>
+      </div>
+      <div class="sec-head"><h2>Payment history</h2><div class="meta">${list.length} entries</div></div>
+      <div style="margin-bottom:10px"><select id="payment-filter"><option value="__all__">All workers</option>${workers.map(w=>`<option value="${w.id}" ${paymentWorkerFilter===w.id?'selected':''}>${esc(w.name)}</option>`).join('')}</select></div>
+      <div class="worker-table">${rows || '<div class="empty">No payments recorded.</div>'}</div>
+    `;
+  }
+
+  // ---------- LEDGER ----------
+  function ledgerView(){
+    const baseList = filteredWorkers(activeWorkers());
+    const q = ledgerSearch.trim().toLowerCase();
+    const list = baseList.filter(w=>!q || (w.name+' '+(w.trade||'')+' '+(w.project||'')).toLowerCase().includes(q));
+    const projOpts = projectsList().map(p=>`<option value="${esc(p)}" ${projectFilter===p?'selected':''}>${esc(p)}</option>`).join('');
+
+    const cards = list.map(w=>{
+      const earned = totalEarned(w.id), paid = totalPaid(w.id), bal = earned-paid;
+      const cycle = cycleStats(w.id);
+      const counts = cycle.counts;
+      const last = lastPaymentDate(w.id);
+      const wPayments = payments.filter(p=>p.workerId===w.id).sort((a,b)=>b.date.localeCompare(a.date));
+      const payRows = wPayments.map(p=>`<div class="pay-row" style="padding:6px 0;"><div class="note">${p.type==='settlement'?'<b>Cycle cleared</b> · ':''}${esc(fmtDate(p.date))}${p.note?' · '+esc(p.note):''}</div><div class="amt" style="color:var(--ink-soft)">${rupees(p.amount)}</div></div>`).join('');
+      return `
+      <div class="ledger-card">
+        <div class="ledger-top">
+          <div>
+            <div class="name">${esc(w.name)}</div>
+            <div class="proj">${esc(w.project||'No project')}${w.trade?' · '+esc(w.trade):''} · ${rupees(w.wage)}/day</div>
+            ${cycle.reset ? `<div class="note" style="margin-top:4px;">Current cycle started after ${esc(fmtDate(cycle.reset.date))}</div>` : ''}
+          </div>
+          <div class="ledger-balance">
+            <div class="amt ${bal>0?'due':'credit'}">${rupees(Math.abs(bal))}</div>
+            <div class="lbl">${bal>0 ? 'to be paid' : (bal<0 ? 'paid in advance' : 'settled')}</div>
+          </div>
+        </div>
+        <div class="ledger-stats">
+          <span><b>${counts.present}</b> full days this cycle</span>
+          <span><b>${counts.half}</b> half days this cycle</span>
+          <span><b>${counts.absent}</b> absent this cycle</span>
+          <span>Cycle earned: <b>${rupees(cycle.earned)}</b></span>
+          <span>Cycle paid: <b>${rupees(cycle.paid)}</b></span>
+          <span>Last paid: <b>${last ? esc(fmtDate(last)) : 'never'}</b></span>
+        </div>
+        <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+          <button class="btn settle small" data-clearcycle="${w.id}" ${bal<=0?'disabled':''}>${bal>0?'Clear payment · '+rupees(bal):'No payment due'}</button>
+        </div>
+        ${wPayments.length ? `<details class="ledger-detail"><summary>Payment history (${wPayments.length})</summary>${payRows}</details>` : ''}
+      </div>`;
+    }).join('');
+
+    const totalDue = list.reduce((s,w)=> s + Math.max(0,totalEarned(w.id)-totalPaid(w.id)), 0);
+
+    return `
+      <div class="sec-head">
+        <h2>Ledger</h2>
+        <div class="row-controls">
+          ${projectsList().length>1 ? `<select id="ledger-project"><option value="__all__">All projects</option>${projOpts}</select>` : ''}
+        </div>
+      </div>
+      <div class="searchbox"><input type="text" id="ledger-search" placeholder="Search worker, work or project" value="${esc(ledgerSearch)}"></div>
+      <div class="meta" style="margin-bottom:12px;">Total outstanding across ${list.length} worker${list.length===1?'':'s'}: <b>${rupees(totalDue)}</b></div>
+      ${installPromptEvent ? `<div class="install-banner"><div class="txt"><b>Install Mazdoor Hisab</b><br>Use it like a normal offline app on this phone.</div><button class="btn small" id="install-app">Install</button></div>` : ''}
+      <div class="safety-card">
+        <div class="sec-head"><h2>Data safety</h2><div class="meta">offline & local</div></div>
+        <div class="safety-row"><div class="safety-label">Primary storage</div><div class="safety-value status-good">IndexedDB + local mirror</div></div>
+        <div class="safety-row"><div class="safety-label">Protected from automatic cleanup</div><div class="safety-value ${safetyInfo.persistent?'status-good':'status-warn'}">${safetyInfo.persistent?'Yes':'Not guaranteed'}</div></div>
+        <div class="safety-row"><div class="safety-label">Automatic snapshots</div><div class="safety-value">${safetyInfo.snapshotCount}${safetyInfo.lastSnapshot?' · '+new Date(safetyInfo.lastSnapshot).toLocaleDateString('en-IN'):''}</div></div>
+        <div class="safety-row"><div class="safety-label">Last downloaded backup</div><div class="safety-value">${safetyInfo.lastManualBackupAt?new Date(safetyInfo.lastManualBackupAt).toLocaleDateString('en-IN'):'Never'}</div></div>
+        <div class="row-controls" style="margin-top:10px">
+          ${!safetyInfo.persistent?'<button class="btn secondary" id="protect-storage">Protect storage</button>':''}
+          <button class="btn secondary" id="restore-snapshot">Restore latest snapshot</button>
+        </div>
+        <div class="small" style="margin-top:8px;color:var(--ink-soft)">For protection against phone loss, uninstalling Chrome, or clearing site/app data, download a backup regularly and keep it outside the browser.</div>
+      </div>
+      <div class="export-card">
+        <div class="sec-head"><h2>Export attendance</h2><div class="meta">custom date range</div></div>
+        <div class="export-grid">
+          <div><label class="field-label">From</label><input type="date" id="excel-from" value="${todayStr().slice(0,8)}01" max="${todayStr()}"></div>
+          <div><label class="field-label">To</label><input type="date" id="excel-to" value="${todayStr()}" max="${todayStr()}"></div>
+          <div class="export-action"><button class="btn secondary" id="export-excel">Export .xlsx</button></div>
+        </div>
+        <div class="export-legend"><span class="legend-p">P = Present</span><span class="legend-h">H = Half day</span><span class="legend-a">A = Absent</span><span style="color:#1d4ed8;font-weight:700">P (100) = custom daily amount</span><span style="color:#b91c1c;font-weight:700">Adv (500) = advance/extra payment</span></div>
+      </div>
+      <div class="export-card">
+        <div class="sec-head"><h2>Backup & restore</h2><div class="meta">recommended weekly</div></div>
+        <div class="row-controls">
+          <button class="btn secondary" id="backup-export">Download backup</button>
+          <label class="btn ghost" style="display:inline-flex;align-items:center;cursor:pointer;">Restore backup<input type="file" id="backup-import" accept=".json,application/json" style="display:none;"></label>
+        </div>
+      </div>
+      ${cards || '<div class="empty">Nothing to show yet.</div>'}
+    `;
+  }
+
+  // ---------- events ----------
+  function bindPanelEvents(){
+    if(activeTab==='attendance'){
+      const dateInput = document.getElementById('att-date');
+      if(dateInput) dateInput.onchange = e => { attDate = e.target.value; draftAttendance = {}; draftAmounts = {}; renderPanel(); };
+      const shiftDate=(delta)=>{ const d=new Date(attDate+'T00:00:00'); d.setDate(d.getDate()+delta); const n=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); if(n<=todayStr()){ attDate=n; draftAttendance={}; draftAmounts={}; renderPanel(); } };
+      const prevDate=document.getElementById('prev-date'); if(prevDate) prevDate.onclick=()=>shiftDate(-1);
+      const nextDate=document.getElementById('next-date'); if(nextDate) nextDate.onclick=()=>shiftDate(1);
+      const todayDate=document.getElementById('today-date'); if(todayDate) todayDate.onclick=()=>{attDate=todayStr(); draftAttendance={}; draftAmounts={}; renderPanel();};
+      const projSel = document.getElementById('att-project');
+      if(projSel) projSel.onchange = e => { projectFilter = e.target.value; renderPanel(); };
+      const attendanceSearchInput=document.getElementById('attendance-search');
+      if(attendanceSearchInput) attendanceSearchInput.oninput=()=>{ attendanceSearch=attendanceSearchInput.value; const pos=attendanceSearchInput.selectionStart; renderPanel(); const n=document.getElementById('attendance-search'); if(n){ n.focus(); try{n.setSelectionRange(pos,pos);}catch(e){} } };
+      document.querySelectorAll('[data-dayamount]').forEach(inp=>{
+        inp.oninput = ()=>{ draftAmounts[inp.dataset.dayamount] = inp.value; };
+      });
+      document.querySelectorAll('.status-toggle').forEach(group=>{
+        group.querySelectorAll('.status-btn').forEach(btn=>{
+          btn.onclick = ()=>{
+            const wid = group.dataset.worker;
+            draftAttendance[wid] = btn.dataset.s;
+            renderPanel();
+          };
+        });
+      });
+      const markAll = document.getElementById('mark-all-present');
+      if(markAll) markAll.onclick = ()=>{
+        filteredWorkers(activeWorkers()).forEach(w=>{ draftAttendance[w.id] = 'present'; });
+        renderPanel();
+      };
+      const saveBtn = document.getElementById('save-attendance');
+      if(saveBtn) saveBtn.onclick = async ()=>{
+        const existing = attendance[attDate] || {};
+        const merged = Object.assign({}, existing);
+        const changedIds = new Set([...Object.keys(draftAttendance), ...Object.keys(draftAmounts)]);
+        changedIds.forEach(wid=>{
+          const w = workers.find(x=>x.id===wid);
+          if(!w) return;
+          const oldRec = merged[wid] || {};
+          const status = draftAttendance[wid] || oldRec.status;
+          if(!status) return;
+          const hasDraftAmount = Object.prototype.hasOwnProperty.call(draftAmounts,wid);
+          const raw = hasDraftAmount ? String(draftAmounts[wid]).trim() : '';
+          const entry = { status, wage: w.wage };
+          if(hasDraftAmount){
+            if(raw!==''){
+              const amount = Number(raw);
+              if(!Number.isFinite(amount) || amount<0){ showToast('Enter a valid custom amount'); return; }
+              entry.amount = amount;
+            }
+          }else if(Number.isFinite(Number(oldRec.amount))){
+            entry.amount = Number(oldRec.amount);
+          }
+          merged[wid] = entry;
+        });
+        if(Object.keys(merged).length===0){ showToast('Mark at least one worker first'); return; }
+        attendance[attDate] = merged;
+        saveBtn.disabled = true; saveBtn.textContent = 'Saving…';
+        await saveAttendance();
+        draftAttendance = {}; draftAmounts = {};
+        showToast('Attendance saved for '+fmtDate(attDate));
+        render();
+      };
+    }
+
+    if(activeTab==='workers'){
+      const workerSearchInput=document.getElementById('worker-search');
+      if(workerSearchInput) workerSearchInput.oninput=()=>{ workerSearch=workerSearchInput.value; const pos=workerSearchInput.selectionStart; renderPanel(); const n=document.getElementById('worker-search'); if(n){ n.focus(); try{n.setSelectionRange(pos,pos);}catch(e){} } };
+      document.getElementById('add-worker').onclick = async ()=>{
+        const name = document.getElementById('w-name').value.trim();
+        const trade = document.getElementById('w-trade').value.trim();
+        const project = document.getElementById('w-project').value.trim();
+        const wage = parseFloat(document.getElementById('w-wage').value);
+        if(!name){ showToast("Enter the worker's name"); return; }
+        if(!wage || wage<=0){ showToast('Enter a valid daily wage'); return; }
+        workers.push({id: uid(), name, trade, project, wage, active:true});
+        await saveWorkers();
+        showToast('Worker added');
+        render();
+      };
+      document.querySelectorAll('[data-edit]').forEach(btn=>{
+        btn.onclick = ()=>{
+          editWorkerId = editWorkerId===btn.dataset.edit ? null : btn.dataset.edit;
+          renderPanel();
+        };
+      });
+      document.querySelectorAll('[data-canceledit]').forEach(btn=>{
+        btn.onclick = ()=>{ editWorkerId = null; renderPanel(); };
+      });
+      document.querySelectorAll('[data-saveedit]').forEach(btn=>{
+        btn.onclick = async ()=>{
+          const w = workers.find(x=>x.id===btn.dataset.saveedit);
+          const form = document.querySelector(`[data-editform="${btn.dataset.saveedit}"]`);
+          if(!w || !form) return;
+          const name = form.querySelector('[data-ew-name]').value.trim();
+          const trade = form.querySelector('[data-ew-trade]').value.trim();
+          const project = form.querySelector('[data-ew-project]').value.trim();
+          const wage = parseFloat(form.querySelector('[data-ew-wage]').value);
+          const active = form.querySelector('[data-ew-active]').value==='active';
+          if(!name){ showToast("Enter the worker's name"); return; }
+          if(!Number.isFinite(wage) || wage<=0){ showToast('Enter a valid daily wage'); return; }
+          w.name = name; w.trade = trade; w.project = project; w.wage = wage; w.active = active;
+          await saveWorkers();
+          editWorkerId = null;
+          showToast('Worker details updated');
+          render();
+        };
+      });
+      document.querySelectorAll('[data-toggle]').forEach(btn=>{
+        btn.onclick = async ()=>{
+          const w = workers.find(x=>x.id===btn.dataset.toggle);
+          if(!w) return;
+          w.active = w.active===false ? true : false;
+          await saveWorkers();
+          render();
+        };
+      });
+    }
+
+    if(activeTab==='payments'){
+      const paymentFilter=document.getElementById('payment-filter'); if(paymentFilter) paymentFilter.onchange=()=>{paymentWorkerFilter=paymentFilter.value; renderPanel();};
+      const addBtn = document.getElementById('add-payment');
+      if(addBtn) addBtn.onclick = async ()=>{
+        const workerId = document.getElementById('p-worker').value;
+        const amount = parseFloat(document.getElementById('p-amount').value);
+        const date = document.getElementById('p-date').value;
+        const note = document.getElementById('p-note').value.trim();
+        if(!workerId){ showToast('Add a worker first'); return; }
+        if(!amount || amount<=0){ showToast('Enter a valid amount'); return; }
+        if(!date){ showToast('Pick a date'); return; }
+        payments.push({id: uid(), workerId, amount, date, note});
+        await savePayments();
+        showToast('Payment recorded');
+        render();
+      };
+      document.querySelectorAll('[data-delpay]').forEach(btn=>{
+        btn.onclick = async ()=>{
+          const p = payments.find(x=>x.id===btn.dataset.delpay);
+          if(!confirm(p && p.type==='settlement' ? 'Undo this cycle clearing? The old balance will become due again.' : 'Remove this payment?')) return;
+          payments = payments.filter(p=>p.id!==btn.dataset.delpay);
+          await savePayments();
+          render();
+        };
+      });
+    }
+
+    if(activeTab==='ledger'){
+      const sel = document.getElementById('ledger-project');
+      if(sel) sel.onchange = e=>{ projectFilter = e.target.value; renderPanel(); };
+      const ledgerSearchInput=document.getElementById('ledger-search');
+      if(ledgerSearchInput) ledgerSearchInput.oninput=()=>{ ledgerSearch=ledgerSearchInput.value; const pos=ledgerSearchInput.selectionStart; renderPanel(); const n=document.getElementById('ledger-search'); if(n){ n.focus(); try{n.setSelectionRange(pos,pos);}catch(e){} } };
+      const exportBtn = document.getElementById('export-excel');
+      if(exportBtn) exportBtn.onclick = ()=>{
+        const from=document.getElementById('excel-from').value;
+        const to=document.getElementById('excel-to').value;
+        exportExcel(from,to);
+      };
+      const installBtn=document.getElementById('install-app');
+      if(installBtn) installBtn.onclick=async()=>{ if(!installPromptEvent) return; installPromptEvent.prompt(); try{await installPromptEvent.userChoice;}catch(e){} installPromptEvent=null; render(); };
+      const protectBtn=document.getElementById('protect-storage');
+      if(protectBtn) protectBtn.onclick=async()=>{ const ok=await requestPersistentStorage(); showToast(ok?'Storage protection enabled':'Browser did not grant persistent storage'); await refreshSafetyInfo(true); };
+      const restoreSnap=document.getElementById('restore-snapshot');
+      if(restoreSnap) restoreSnap.onclick=restoreLatestSnapshot;
+      const backupExport=document.getElementById('backup-export');
+      if(backupExport) backupExport.onclick=downloadBackup;
+      const backupImport=document.getElementById('backup-import');
+      if(backupImport) backupImport.onchange=()=>{ if(backupImport.files&&backupImport.files[0]) importBackupFile(backupImport.files[0]); };
+      document.querySelectorAll('[data-clearcycle]').forEach(btn=>{
+        btn.onclick = async ()=>{
+          const workerId = btn.dataset.clearcycle;
+          const w = workers.find(x=>x.id===workerId);
+          if(!w) return;
+          const earnedBefore = totalEarned(workerId);
+          const paidBefore = totalPaid(workerId);
+          const due = earnedBefore-paidBefore;
+          if(due<=0){ showToast('No outstanding payment to clear'); return; }
+          if(!confirm(`Clear ${rupees(due)} for ${w.name} and start a new cycle?`)) return;
+          const countsBefore = attendanceCounts(workerId);
+          const settlement = {
+            id: uid(), workerId, amount: due, date: todayStr(),
+            note: 'Full settlement — new cycle started', type:'settlement',
+            clearedAt: new Date().toISOString(),
+            resetEarnedTotal: earnedBefore,
+            resetPaidTotal: paidBefore + due,
+            resetCounts: countsBefore
+          };
+          payments.push(settlement);
+          btn.disabled = true;
+          await savePayments();
+          showToast('Payment cleared — new cycle started');
+          render();
+        };
+      });
+    }
+  }
+
+  // ---------- install / init ----------
+  window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installPromptEvent=e; if(ready) render(); });
+  window.addEventListener('appinstalled',()=>{ installPromptEvent=null; showToast('Mazdoor Hisab installed'); });
+
+  (async function init(){
+    if('serviceWorker' in navigator && location.protocol!=='file:' && !location.href.startsWith('content:')){
+      try{ await navigator.serviceWorker.register('./sw.js'); }catch(e){}
+    }
+    await loadAll();
+    await migrateMergedIfNeeded();
+    await requestPersistentStorage();
+    await refreshSafetyInfo(false);
+    if(safetyInfo.snapshotCount===0 && (workers.length || Object.keys(attendance).length || payments.length)){ try{await createAutoSnapshot();}catch(e){} }
+    ready = true;
+    render();
+  })();
+})();
+</script>
+</body>
+</html>
