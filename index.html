@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mazdoor Hisab — Secure Offline Worker Wage Register</title>
+<title>Worker Ledger — Secure Offline Worker Wage Register</title>
 <meta name="theme-color" content="#21304a">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Mazdoor Hisab">
+<meta name="apple-mobile-web-app-title" content="Worker Ledger">
 <link rel="manifest" href="./manifest.webmanifest">
 <link rel="icon" href="./icon-192.png">
 <style>
@@ -686,11 +686,11 @@
       {name:'xl/workbook.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Attendance" sheetId="1" r:id="rId1"/></sheets></workbook>`},
       {name:'xl/_rels/workbook.xml.rels',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
       {name:'xl/worksheets/sheet1.xml',data:sheet},{name:'xl/styles.xml',data:styles},
-      {name:'docProps/core.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:creator>Mazdoor Hisab</dc:creator><cp:lastModifiedBy>Mazdoor Hisab</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`},
-      {name:'docProps/app.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Mazdoor Hisab</Application></Properties>`}
+      {name:'docProps/core.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><cp:coreProperties xmlns:cp="http://schemas.openxmlformats.org/package/2006/metadata/core-properties" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dcterms="http://purl.org/dc/terms/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"><dc:creator>Worker Ledger</dc:creator><cp:lastModifiedBy>Worker Ledger</cp:lastModifiedBy><dcterms:created xsi:type="dcterms:W3CDTF">${new Date().toISOString()}</dcterms:created></cp:coreProperties>`},
+      {name:'docProps/app.xml',data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocument/2006/docPropsVTypes"><Application>Worker Ledger</Application></Properties>`}
     ];
     const zip=makeZip(files), blob=new Blob([zip],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Mazdoor_Hisab_${from}_to_${to}.xlsx`; a.click();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Worker_Ledger_${from}_to_${to}.xlsx`; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1500); showToast('Excel .xlsx exported');
   }
 
@@ -707,7 +707,7 @@
   async function downloadBackup(){
     const payload=await buildBackupPayload();
     const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
-    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Mazdoor_Hisab_Backup_${todayStr()}.json`; a.click();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`Worker_Ledger_Backup_${todayStr()}.json`; a.click();
     setTimeout(()=>URL.revokeObjectURL(a.href),1000);
     const ts=new Date().toISOString();
     try{localStorage.setItem('mazdoor-hisab-last-manual-backup',ts);}catch(e){}
@@ -760,7 +760,7 @@
 
     app.innerHTML = `
       <div class="titleplate">
-        <h1>Mazdoor Hisab</h1>
+        <h1>Worker Ledger</h1>
         <div class="sub">Attendance · wages · payments</div>
         <div class="today">${esc(fmtDate(todayStr()))}</div>
       </div>
@@ -982,7 +982,7 @@
       </div>
       <div class="searchbox"><input type="text" id="ledger-search" placeholder="Search worker, work or project" value="${esc(ledgerSearch)}"></div>
       <div class="meta" style="margin-bottom:12px;">Total outstanding across ${list.length} worker${list.length===1?'':'s'}: <b>${rupees(totalDue)}</b></div>
-      ${installPromptEvent ? `<div class="install-banner"><div class="txt"><b>Install Mazdoor Hisab</b><br>Use it like a normal offline app on this phone.</div><button class="btn small" id="install-app">Install</button></div>` : ''}
+      ${installPromptEvent ? `<div class="install-banner"><div class="txt"><b>Install Worker Ledger</b><br>Use it like a normal offline app on this phone.</div><button class="btn small" id="install-app">Install</button></div>` : ''}
       <div class="safety-card">
         <div class="sec-head"><h2>Data safety</h2><div class="meta">offline & local</div></div>
         <div class="safety-row"><div class="safety-label">Primary storage</div><div class="safety-value status-good">IndexedDB + local mirror</div></div>
@@ -1213,7 +1213,7 @@
 
   // ---------- install / init ----------
   window.addEventListener('beforeinstallprompt',e=>{ e.preventDefault(); installPromptEvent=e; if(ready) render(); });
-  window.addEventListener('appinstalled',()=>{ installPromptEvent=null; showToast('Mazdoor Hisab installed'); });
+  window.addEventListener('appinstalled',()=>{ installPromptEvent=null; showToast('Worker Ledger installed'); });
 
   (async function init(){
     if('serviceWorker' in navigator && location.protocol!=='file:' && !location.href.startsWith('content:')){
